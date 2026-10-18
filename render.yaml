@@ -32,6 +32,7 @@ services:
         sync: false
   - type: web
     name: nexus-api
+    plan: free
     runtime: docker
     rootDir: Backend Server
     dockerfilePath: ./Dockerfile
@@ -42,7 +43,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: NEXUS_PROCESS_ROLE
-        value: api
+        value: all
       - key: NEXUS_STRICT_STARTUP
         value: "true"
       - key: NEXUS_REQUIRE_BILLING
@@ -50,6 +51,17 @@ services:
       - key: NEXUS_REQUIRE_DISTRIBUTED_RATE_LIMITING
         value: "true"
       - key: NEXUS_HORIZONTAL_SCALING
+        value: "false"
+      # Jobs run only while the free API is awake; there is no paid worker.
+      - key: WEBHOOK_WORKER_ENABLED
+        value: "true"
+      - key: AUTOMATION_WORKER_ENABLED
+        value: "true"
+      - key: REPORT_SCHEDULER_ENABLED
+        value: "true"
+      - key: RETENTION_WORKER_ENABLED
+        value: "true"
+      - key: ACCOUNT_DELETION_WORKER_ENABLED
         value: "true"
       - key: FRONTEND_URL
         sync: false
@@ -96,41 +108,4 @@ services:
       - key: UPSTASH_REDIS_REST_URL
         sync: false
       - key: UPSTASH_REDIS_REST_TOKEN
-        sync: false
-
-  - type: worker
-    name: nexus-worker
-    runtime: docker
-    rootDir: Backend Server
-    dockerfilePath: ./Dockerfile
-    dockerContext: ./
-    dockerCommand: node worker.js
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: NEXUS_STRICT_STARTUP
-        value: "true"
-      - key: FRONTEND_URL
-        sync: false
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_SECRET_KEY
-        sync: false
-      - key: RESEND_API_KEY
-        sync: false
-      - key: RESEND_FROM_EMAIL
-        sync: false
-      - key: WEBHOOK_ENCRYPTION_KEY
-        sync: false
-      - key: TWILIO_ACCOUNT_SID
-        sync: false
-      - key: TWILIO_AUTH_TOKEN
-        sync: false
-      - key: ACCOUNT_DELETION_WORKER_ENABLED
-        value: "true"
-      - key: ACCOUNT_DELETION_GRACE_DAYS
-        value: "7"
-      - key: ACCOUNT_DELETION_SWEEP_INTERVAL_MS
-        value: "900000"
-      - key: TWILIO_SERVICE_SID
         sync: false

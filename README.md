@@ -9,7 +9,7 @@ Nexus is a verification and workspace platform with a React frontend, an Express
 - `Backend Server/`: API, background workers, provider adapters, and backend tests.
 - `supabase/migrations/`: ordered database migrations.
 - `scripts/`: local startup, release checks, and smoke checks.
-- `render.yaml`: the authoritative deployment blueprint for frontend, API, and worker.
+- `render.yaml`: the free deployment blueprint for the static frontend and one API with embedded jobs.
 
 Use Node.js 22, specified by the root `.nvmrc`. This README is the project's single documentation file; dependency packages retain their own documentation and licenses.
 
@@ -61,7 +61,7 @@ Database integration checks use `npm --prefix "Backend Server" run test:integrat
 - Lint, 108 backend tests, and the production frontend build passed.
 - Production dependency audits reported zero advisories for frontend and API; this excludes development toolchain dependencies.
 - A full UI run encountered a sandbox cache error. A workspace-cache retry later stalled and was interrupted, so the full suite is not recorded as passing. Its obsolete AI-branding expectation was updated; that focused suite passed all 12 tests.
-- Public release remains blocked on hosted URLs, signup-hook configuration, shared rate limiting, and hosted service checks. Nothing has been uploaded or deployed.
+- Public release remains blocked on hosted URLs, signup-hook configuration, shared rate limiting, and hosted service checks. Sanitized source is published on GitHub; hosted deployment still needs configuration.
 
 ## Database and operational requirements
 
@@ -84,7 +84,7 @@ Billing activates only after server-side payment verification or verified provid
 3. Create a Render account at https://dashboard.render.com/ using your GitHub account.
 4. Initially use Render's provided HTTPS domains. A custom domain can be added later.
 
-Render can host all three Nexus services: static frontend, API, and background worker. Static hosting is free within usage allowances; the dedicated worker requires a paid compute plan. The root blueprint does not specify compute plans, so review the API and worker charges before deploying. A free API sleeps when idle and is unsuitable for reliable production OTP/payment callbacks. Existing Supabase remains the database; do not create a replacement Render database.
+The root blueprint uses a free static frontend and an explicitly free API. Background jobs share the API process; no paid worker is created. Render sleeps the API after 15 minutes without inbound traffic and waking takes about one minute. Queued workflows, webhook retries, scheduled reports, retention and account deletion can be delayed while asleep; this setup is a preview, not reliable production hosting. Free hours, bandwidth and builds have workspace limits shared with other services. Do not add a payment method or upgrade plans if you need zero hosting spend. Existing Supabase remains the database; do not create a replacement Render database. SMS, email and payment providers have their own separate quotas/pricing.
 
 ### 2. Publish the project privately
 
@@ -104,8 +104,8 @@ Only source code and placeholder `.env.example` files belong in the repository. 
 1. In Render, select New → Blueprint.
 2. Connect GitHub and grant access to this Nexus repository.
 3. Select the repository, branch `main`, and the **root** `render.yaml`.
-4. Confirm these three resources: `nexus-frontend`, `nexus-api`, `nexus-worker`.
-5. Review the compute plan/cost for API and worker before confirming deployment.
+4. Confirm only `nexus-frontend` (static) and `nexus-api` (Free).
+5. Verify the API explicitly says Free and no paid worker appears before deploying.
 6. Enter secret values only in Render's environment settings. Use `Backend Server/.env.example` as the variable-name reference. Do not paste secrets into chat or GitHub.
 
 Use the frontend and API HTTPS addresses assigned by Render, not localhost and not guessed addresses. Initial services may fail while these values and the signup hook are being connected; keep the strict checks enabled and redeploy once configured.
@@ -122,9 +122,9 @@ On **nexus-frontend**, enter these build-time variables:
 | `REACT_APP_SUPABASE_EMAIL_REDIRECT_URL` | Frontend HTTPS origin plus `/verify-email` |
 | `REACT_APP_SUPABASE_OAUTH_REDIRECT_URL` | Frontend HTTPS origin plus `/dashboard` |
 
-Set `FRONTEND_URL` on API and worker to the frontend HTTPS origin. Rebuild the frontend after changing its variables.
+Set `FRONTEND_URL` on the API to the frontend HTTPS origin. Rebuild the frontend after changing its variables.
 
-On API/worker configure the existing Supabase backend secret, SMS verification, email delivery, and webhook encryption settings. Use the same `WEBHOOK_ENCRYPTION_KEY` on API and worker. Keep a stable `SIGNUP_PROOF_SECRET` on the API. Configure the AI key on the API only. Configure shared Upstash REST URL/token on the API because the blueprint requires distributed rate limiting. Do not change the production security flags merely to make startup pass.
+On the API configure the existing Supabase backend secret, SMS verification, email delivery, and webhook encryption settings. If you later deploy a separate worker, use the same `WEBHOOK_ENCRYPTION_KEY` on both services and switch the API role to `api` to avoid duplicate embedded jobs. Keep a stable `SIGNUP_PROOF_SECRET` on the API. Configure the AI key on the API only. Configure shared Upstash REST URL/token on the API because the blueprint requires distributed rate limiting. Do not change the production security flags merely to make startup pass.
 
 ### 5. Connect authentication and payments
 

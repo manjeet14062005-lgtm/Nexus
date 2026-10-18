@@ -60,6 +60,7 @@ const { getBillingPreferences, updateBillingPreferences, DEFAULT_PREFERENCES } =
 const { summarizeVerificationUsage } = require("./billingUsage");
 const { getWorkspaceBranding, updateWorkspaceBranding } = require("./workspaceBranding");
 const { createRateLimiter } = require("./rateLimiter");
+const { startRetentionWorker } = require("./retention");
 const { checkReadiness, collectConfigStatus } = require("./readiness");
 const { listApiLogs } = require("./requestLogs");
 const { getWorkspaceAnalytics, buildVerificationCsv, parseRange } = require("./analytics");
@@ -553,7 +554,7 @@ app.delete("/workspaces/:workspaceId/members/:memberId", authenticate, requireWo
 app.get("/workspaces/:workspaceId/export.json", authenticate, requireWorkspaceRole(["owner", "admin", "analyst"]), async (req, res) => {
   try {
     const { exportWorkspaceData } = require("./workspaceDataExport");
-const { buildPersonalExport, createDeletionRequest, cancelDeletionRequest } = require("./accountLifecycle");
+const { buildPersonalExport, createDeletionRequest, cancelDeletionRequest, startAccountDeletionWorker } = require("./accountLifecycle");
     const payload = await exportWorkspaceData(req.params.workspaceId);
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.setHeader("Content-Disposition", `attachment; filename="nexus-workspace-${req.params.workspaceId}.json"`);
@@ -2136,7 +2137,7 @@ async function start() {
   const workerTimers = [];
   const server = app.listen(PORT, () => {
     if (processRole !== "api") {
-      for (const timer of [startWebhookWorker(), startAutomationWorker(), startReportScheduler()]) {
+      for (const timer of [startWebhookWorker(), startAutomationWorker(), startReportScheduler(), startRetentionWorker(), startAccountDeletionWorker()]) {
         if (timer) workerTimers.push(timer);
       }
     } else if ([

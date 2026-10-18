@@ -1,0 +1,12 @@
+import {Box,Typography,Button,Alert,Skeleton} from '@mui/material';
+import {BentoBox} from './BentoBox';
+const labels={profile_updated:'Account details updated',sessions_revoked:'Sign-out requested across devices',deletion_requested:'Account deletion scheduled',deletion_canceled:'Account deletion canceled'};
+export function SectionActivity({user,securityEvents,activityLoading,activityError,activityPage,activityTotal,activityHasMore,setEventPage,refresh}){
+ return <Box sx={{display:'grid',gap:3}}>
+  <BentoBox title="Your account timeline" subtitle="Server-recorded changes, with clear dates and details." spotlight={false}>
+   {user?.created_at && <Box className="acct-timeline-item"><span className="acct-timeline-dot"/><Box><Typography sx={{fontWeight:600}}>Joined Nexus</Typography><Typography variant="caption" color="text.secondary">{new Date(user.created_at).toLocaleString()}</Typography></Box></Box>}
+   {activityLoading?<Skeleton height={100}/>:activityError?<Alert severity="error" action={<Button onClick={refresh}>Retry</Button>}>{activityError}</Alert>:!securityEvents?.length?<Typography sx={{py:3,color:'var(--acct-muted)'}}>No recorded changes on this page. History begins when account event tracking is enabled; older sign-ins are not reconstructed.</Typography>:securityEvents.map(evt=><Box key={evt.id} className="acct-timeline-item"><span className="acct-timeline-dot"/><Box><Typography sx={{fontWeight:600}}>{labels[evt.type] || 'Account event'}</Typography>{evt.metadata?.fields?.length>0 && <Typography variant="body2" color="text.secondary">Changed: {evt.metadata.fields.map(f=>({photoUrl:'photo',phoneVerified:'phone verification',marketingEmails:'marketing preference',securityAlerts:'security preference',weeklyDigest:'digest preference'}[f] || f)).join(', ')}</Typography>}<Typography variant="caption" color="text.secondary">{new Date(evt.created_at).toLocaleString()}</Typography></Box></Box>)}
+   <Box sx={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:1,mt:2}}><Typography variant="caption" color="text.secondary">{activityTotal} recorded events · page {activityPage+1}</Typography><Box><Button disabled={activityLoading || !activityPage} onClick={()=>setEventPage(p=>p-1)}>Previous</Button><Button disabled={activityLoading || !activityHasMore} onClick={()=>setEventPage(p=>p+1)}>Next</Button><Button disabled={activityLoading} onClick={refresh}>Refresh</Button></Box></Box>
+  </BentoBox>
+ </Box>;
+}

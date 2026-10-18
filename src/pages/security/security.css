@@ -1,0 +1,19 @@
+.security-upgrade { --nexus-interaction-border:#76889e; --nexus-interaction-shadow:rgba(75,91,112,.12); }
+.security-upgrade .security-hero { background:linear-gradient(115deg,#202b38,#35465a 75%,#5b6c7e) !important; color:#fff; border:1px solid #617287 !important; box-shadow:0 20px 55px rgba(32,43,56,.13) !important; }
+.security-hero .MuiTypography-root { color:#d3deeb !important; }
+.security-hero .security-title { color:#fff !important; -webkit-text-fill-color:#fff; }
+.security-hero .MuiChip-root { color:#e0eaf3 !important; border-color:rgba(255,255,255,.22) !important; }
+.security-hero .MuiSelect-select,.security-hero .MuiInputLabel-root { color:#f3f6fa; }
+.security-hero .MuiOutlinedInput-root { background:rgba(255,255,255,.09) !important; }
+.security-hero .MuiOutlinedInput-notchedOutline { border-color:rgba(255,255,255,.25); }
+.security-hero .MuiInputBase-root .MuiSelect-select,.security-hero .MuiSelect-select * { color:#f3f6fa !important; -webkit-text-fill-color:#f3f6fa !important; }
+.security-upgrade[data-theme=light] .security-metric { background:#fff !important; border:1px solid #dbe2e9 !important; box-shadow:0 8px 24px rgba(32,43,56,.04) !important; }
+.security-upgrade .security-metric::before { display:none; }
+.security-upgrade .security-metric::after,.security-upgrade .security-hero::before { height:1px !important; pointer-events:none; }
+.security-upgrade .security-hero::before { background:linear-gradient(90deg,transparent,#aebfd8,transparent) !important; }
+.security-hero .MuiSvgIcon-root { color:#d2deed; }
+.security-upgrade .MuiTabs-root { max-width:100%; }
+.security-upgrade .MuiTab-root { min-height:56px; }
+.security-upgrade .security-account-link { margin-top:14px; }
+@media(max-width:600px) { .security-upgrade .MuiDialog-paper { margin:12px; max-width:calc(100vw - 24px); } }
+@media(prefers-reduced-motion:reduce) { .security-upgrade * { animation:none !important; transition:none !important; } }

@@ -1,0 +1,30 @@
+node_modules/
+build/
+.env
+.env.*
+!.env.example
+Backend Server/.env
+Backend Server/.env.*
+!Backend Server/.env.example
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+
+.env.local
+
+# Local diagnostics, previews and backups must not be published.
+*.log
+design-preview/
+design-backups/
+coverage/
+.cache/
+*.zip
+*.rar
+*.7z
+*.patch
+*.bak
+*.pem
+*.key
+
+supabase/.temp/

@@ -1,0 +1,102 @@
+.trust-gate {
+  --tg-porcelain: #faf9ff;
+  --tg-mist: #f0f1ff;
+  --tg-ink: #16172e;
+  --tg-body: #41435b;
+  --tg-muted: #565b73;
+  --tg-jade: #355bc3;
+  --tg-line: #e0e1ee;
+}
+.tg-stage {
+  background: radial-gradient(ellipse at 72% 40%, #e4e6ff 0, transparent 48%),
+    radial-gradient(ellipse at 90% 76%, #fae5dd 0, transparent 40%), #faf9ff;
+}
+.tg-stage::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background-image: linear-gradient(#686bae0a 1px, transparent 1px), linear-gradient(90deg,#686bae0a 1px, transparent 1px);
+  background-size: 88px 88px;
+  mask-image: radial-gradient(ellipse at 75% 50%, black, transparent 65%);
+}
+.tg-stage::after { background: #faf9ff; opacity: calc(var(--scene-wash,0) * .2); }
+.tg-stage[data-chapter="1"] { background:radial-gradient(ellipse at 75% 40%,#e8edff,transparent 55%),#faf9ff; }
+.tg-stage[data-chapter="2"] { background:radial-gradient(ellipse at 75% 40%,#eee3fc,transparent 55%),#faf9ff; }
+.tg-stage[data-chapter="3"] { background:radial-gradient(ellipse at 75% 40%,#f9e6e1,transparent 55%),#faf9ff; }
+.tg-header { background:#faf9fff2; }
+.tg-hero-caption span+span { border-color:var(--tg-line); }
+.tg-chart-legend i { background:#6c80cb; }
+.tg-scene { width: 70%; right: -7%; isolation: isolate; }
+.tg-hero-copy h1 { font-size: clamp(65px,7.4vw,114px); letter-spacing: -.073em; }
+.tg-hero-copy h1 em { color: #355bc3; }
+.tg-hero-copy { z-index: 3; }
+.tg-chapter-title { letter-spacing: -.055em; }
+.tg-chapter-title { animation: ls-title .85s cubic-bezier(.22,1,.36,1) both; }
+.ls-coordinate { position: absolute; font: 10px 'JetBrains Mono',monospace; letter-spacing: .13em; color: #565b73; z-index: 2; }
+.ls-coordinate-top { top: 17%; right: 16%; display:flex; gap: 45px; align-items: center; }
+.ls-coordinate-top span { font-size: 30px; color: #355bc3; }
+.ls-coordinate-bottom { bottom: 20%; right: 18%; }
+.ls-coordinate .tg-dot { animation: ls-beacon 3s ease-in-out infinite; }
+.tg-tag, .tg-segment button[aria-pressed=true], .tg-chapter-nav button[aria-current=step], .tg-chapter-nav button:hover { background: #ecebfd; color: #355bc3; }
+.tg-button { box-shadow: 0 8px 22px #355bc320; transition: transform .35s var(--tg-ease), background .3s, box-shadow .35s; }
+.tg-button:hover { transform: translateY(-3px); background: #274aa8; box-shadow: 0 14px 30px #355bc330; }
+.tg-button span { display: inline-block; transition: transform .35s var(--tg-ease); }
+.tg-button:hover span { transform: translate(3px,-3px); }
+.ls-marquee { overflow:hidden; border-block:1px solid var(--tg-line); background:#f0f1ff; padding:28px 0; }
+.ls-marquee>div { display:flex; width:max-content; animation: ls-marquee 45s linear infinite; }
+.ls-marquee span { flex-shrink:0; font-size:clamp(35px,5.5vw,80px); letter-spacing:-.045em; font-weight:500; color:#303760; white-space:nowrap; padding-right:35px; }
+.ls-marquee b { display:inline-block; padding:0 32px; font-weight:400; color:#7b74c3; }
+.tg-intro[data-revealed=true] h2, .tg-section[data-revealed=true] h2,
+.tg-band[data-revealed=true] h2, .tg-security[data-revealed=true] h2,
+.tg-finale[data-revealed=true] h2 { animation: ls-reveal 1s var(--tg-ease) both; }
+.tg-section[data-revealed=true] .tg-demo-card, .tg-section[data-revealed=true] .tg-code-card,
+.tg-section[data-revealed=true] .tg-role-card, .tg-band[data-revealed=true] .tg-dashboard-preview { animation: ls-card 1.15s .08s var(--tg-ease) both; }
+.tg-capabilities span { transition: transform .4s var(--tg-ease); }
+.tg-capabilities span:hover { transform: translateY(-7px); }
+.tg-demo-card,.tg-code-card,.tg-role-card,.tg-dashboard-preview { box-shadow: 0 26px 80px #4448720d; }
+.tg-demo-body[data-step=verified] .tg-demo-icon { animation: ls-confirm .8s var(--tg-ease) both; background:#ecebfd; color:#355bc3; box-shadow:0 0 0 12px #ecebfd66,0 0 0 25px #ecebfd33; }
+.tg-demo-icon { background:#ecebfd; color:#355bc3; }
+.tg-code-card pre { animation: ls-code .4s var(--tg-ease) both; }
+.tg-analytics { background:linear-gradient(145deg,#f0f1ff,#f7f0fb 60%,#fcf1ea); }
+.tg-chart i { background: linear-gradient(0deg,#365ac2,#9da8ed); transform-origin:bottom; }
+.tg-analytics[data-revealed=true] .tg-chart i { animation: ls-bar .9s calc(var(--bar-index) * 35ms) var(--tg-ease) both; }
+.tg-chart { position:relative; }
+.tg-chart::after { content:''; pointer-events:none; position:absolute; inset:0; background:linear-gradient(90deg,transparent,#ffffff77,transparent); transform:translateX(-100%); animation:ls-scan 8s 2s ease-in-out infinite; }
+.tg-workflows { background:#faf9ff; }
+.tg-workflow-graph { position:relative; }
+.tg-workflow-graph::before { background:linear-gradient(90deg,#c5cff1,#afa1df,#f1c3b1); }
+.tg-workflow-graph::after { content:''; pointer-events:none; position:absolute; left:15%; top:50%; width:8px; height:8px; border-radius:50%; background:#355bc3; box-shadow:0 0 0 7px #355bc31a; animation:ls-travel 5s var(--tg-ease) infinite; }
+.tg-workflow-node { position:relative; z-index:1; transition:transform .45s var(--tg-ease), border-color .3s, box-shadow .3s; }
+.tg-workflow-node:hover { transform:translateY(-7px); box-shadow:0 18px 40px #514a8214; }
+.tg-workflow-node[aria-pressed=true] { border-color:#8f9cd0; background:#f0f1ff; }
+.tg-node-symbol { color:#355bc3; background:#ecebfd; }
+.tg-workflow-detail { background:#f0f1ff; }
+.tg-workflow-detail>div { animation:ls-code .45s var(--tg-ease) both; }
+.tg-role-card li { transition:background .3s; }
+.tg-role-card li:hover { background:#f0f1ff; }
+.tg-security-grid article { transition:transform .45s var(--tg-ease), box-shadow .45s; }
+.tg-security-grid article:hover { transform:translateY(-6px); box-shadow:0 20px 35px #4448720d; }
+.tg-finale { background:radial-gradient(ellipse at 50% 50%,#e8e7fb,#f5effa 55%,#faf9ff); }
+.tg-finale-aperture { animation:ls-orbit 36s linear infinite; }
+.tg-finale-aperture span { border-color:#b5b9e1; box-shadow:inset 0 0 50px #b7c8f344,0 0 55px #c5b5e822; }
+.tg-finale-aperture span:last-child { animation:ls-orbit 24s linear infinite reverse; }
+.tg-wordmark { color:#e1e0ed; }
+.trust-gate[data-motion=lite] .ls-marquee>div { animation-duration:65s; }
+.ls-marquee[data-visible=false]>div, .tg-analytics[data-visible=false] .tg-chart::after,
+.tg-workflows[data-visible=false] .tg-workflow-graph::after,
+.tg-finale[data-visible=false] .tg-finale-aperture,
+.tg-finale[data-visible=false] .tg-finale-aperture span { animation-play-state:paused; }
+.trust-gate[data-motion=off] .ls-coordinate { display:none; }
+@keyframes ls-marquee { to { transform:translateX(-50%); } }
+@keyframes ls-title { from { transform:translateY(22px); clip-path:inset(0 0 100% 0); } to { transform:translateY(0); clip-path:inset(0); } }
+@keyframes ls-reveal { from { transform:translateY(30px); } to { transform:translateY(0); } }
+@keyframes ls-card { from { transform:translateY(45px) rotate(1deg); } to { transform:translateY(0) rotate(0); } }
+@keyframes ls-bar { from { transform:scaleY(.15); } to { transform:scaleY(1); } }
+@keyframes ls-beacon { 50% { box-shadow:0 0 0 5px #355bc317; } }
+@keyframes ls-code { from { transform:translateY(8px); opacity:.65; } to { transform:translateY(0); opacity:1; } }
+@keyframes ls-confirm { from { transform:scale(.5) rotate(-35deg); } to { transform:scale(1) rotate(0); } }
+@keyframes ls-scan { 0%,30% { transform:translateX(-100%); } 75%,100% { transform:translateX(100%); } }
+@keyframes ls-travel { 0% { left:15%; opacity:0; } 12%,85% { opacity:1; } 100% { left:85%; opacity:0; } }
+@keyframes ls-orbit { to { transform:rotate(360deg); } }
+@media(max-width:900px) { .tg-scene { width:100%; right:-18%; } .ls-coordinate { display:none; } .tg-hero-copy h1 { font-size:clamp(64px,10vw,90px); } }
+@media(max-width:600px) { .tg-scene { width:125%; right:-12.5%; } .tg-hero-copy h1 { font-size:64px; } .ls-marquee { padding:22px 0; } .tg-workflow-graph::after { display:none; } }
+@media(prefers-reduced-motion:reduce) { .trust-gate *, .trust-gate *::before, .trust-gate *::after { animation:none!important; transition:none!important; } }
+.trust-gate[data-motion=off] *, .trust-gate[data-motion=off] *::before, .trust-gate[data-motion=off] *::after { animation:none!important; transition:none!important; }

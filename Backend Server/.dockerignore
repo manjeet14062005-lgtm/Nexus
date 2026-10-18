@@ -1,0 +1,10 @@
+node_modules
+npm-debug.log
+.env
+.git
+*.md
+phase*_static_smoke.js
+.env*
+*.log
+coverage
+*.test.js

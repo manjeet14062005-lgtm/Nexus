@@ -1,0 +1,22 @@
+.billing-upgrade { --nexus-interaction-border: #6583b1; --nexus-interaction-shadow: rgba(70,100,149,.12); }
+.billing-upgrade .billing-hero { background: linear-gradient(115deg,#162a49,#263f65 66%,#44618a) !important; color:#fff; border:1px solid #58719b; box-shadow:0 20px 48px rgba(23,42,69,.15) !important; }
+.billing-hero .MuiTypography-root { color:#fff; }
+.billing-hero .MuiTypography-body2,.billing-hero .MuiTypography-caption { color:#ced8e8; }
+.billing-hero .MuiTypography-overline { color:#b8cce9; }
+.billing-hero .MuiChip-root { color:#e5edf8 !important; background:rgba(255,255,255,.08) !important; border-color:rgba(255,255,255,.2) !important; }
+.billing-hero .MuiButton-outlined { color:#e7edf7; border-color:#8fa5c7; }
+.billing-hero::after { content:""; position:absolute; width:420px; height:420px; border:1px solid rgba(203,222,252,.13); border-radius:50%; right:-140px; top:-160px; box-shadow:0 0 0 38px rgba(203,222,252,.04),0 0 0 78px rgba(203,222,252,.03),0 0 0 118px rgba(203,222,252,.02); pointer-events:none; }
+.billing-hero > .MuiBox-root { z-index:1; }
+.billing-hero .billing-hero-metric { background:rgba(255,255,255,.075) !important; border:1px solid rgba(255,255,255,.15) !important; }
+.billing-hero .billing-hero-metric .MuiTypography-caption { color:#bdcde3 !important; }
+.billing-summary { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:20px; }
+.billing-summary-main,.billing-summary-side { border:1px solid #dce3ed; border-radius:24px; padding:30px; background:linear-gradient(145deg,#fff,#f4f7fb); min-width:0; }
+.billing-summary-side { background:#fff; }
+.billing-summary .MuiTypography-overline { color:#667998; letter-spacing:.14em; font-size:10px; font-weight:700; }
+.billing-recent { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:16px 0; border-bottom:1px solid #e6ebf2; }
+.billing-recent > .MuiBox-root { min-width:0; overflow-wrap:anywhere; }
+.billing-invoice-filters { display:grid; grid-template-columns:minmax(160px,1.4fr) minmax(120px,.8fr) repeat(2,minmax(140px,1fr)); gap:12px; padding:0 24px 24px; }
+.billing-upgrade[data-theme=dark] .billing-summary-main,.billing-upgrade[data-theme=dark] .billing-summary-side { background:#121d2b; border-color:#2d3c51; }
+@media(max-width:900px) { .billing-summary { grid-template-columns:1fr; } .billing-invoice-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:500px) { .billing-summary-main,.billing-summary-side { padding:22px; border-radius:20px; } .billing-invoice-filters { grid-template-columns:1fr; } .billing-hero::after { opacity:.4; } }
+@media(prefers-reduced-motion:reduce) { .billing-upgrade * { animation:none !important; transition:none !important; } }

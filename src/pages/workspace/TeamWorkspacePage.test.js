@@ -1,0 +1,42 @@
+import React, { act } from 'react';
+import { createRoot } from 'react-dom/client';
+import { MemoryRouter } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
+import { getTheme } from '../../constants/theme';
+import { TeamWorkspacePage } from './TeamWorkspacePage';
+import { apiRequest } from '../../services/apiClient';
+jest.mock('../../services/apiClient', () => ({ apiRequest: jest.fn(), apiDownload: jest.fn() }));
+jest.mock('../../contexts/UserProfileContext', () => ({ useUserProfile: () => ({ profile: null }) }));
+jest.mock('react-hot-toast', () => ({ toast: { success: jest.fn(), error: jest.fn() } }));
+jest.mock('../../components/common/WorkspaceReauthentication', () => ({ WorkspaceReauthentication: ({ onVerified }) => <button onClick={onVerified}>Verify test identity</button> }));
+const user = { uid: 'owner', email: 'owner@example.com' };
+const workspace = { id: 'ws', name: 'Disposable fixture', role: 'owner' };
+let host, root;
+beforeEach(() => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host);
+  apiRequest.mockImplementation(async (_user, path, options) => {
+    if (options?.method === 'DELETE') throw Object.assign(new Error('Re-authenticate'), { data: { code: 'RECENT_AUTH_REQUIRED' } });
+    if (path === '/workspaces') return { workspaces: [workspace] };
+    if (path.endsWith('/members')) return { members: [] };
+    if (path.includes('/activity')) return { activity: [] };
+    if (path.endsWith('/branding')) return { branding: { available: false } };
+    return { invites: [] };
+  });
+});
+afterEach(() => { act(() => root.unmount()); host.remove(); jest.clearAllMocks(); });
+const findButton = (label) => [...document.querySelectorAll('button')].find((item) => item.textContent.trim() === label);
+const deletes = () => apiRequest.mock.calls.filter((args) => args[2]?.method === 'DELETE').length;
+test('recent-auth failure offers recovery and verification never auto-deletes', async () => {
+  await act(async () => root.render(<MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><ThemeProvider theme={getTheme(false)}><TeamWorkspacePage user={user} userRole="user" darkMode={false} /></ThemeProvider></MemoryRouter>));
+  await act(async () => findButton('Settings').click());
+  await act(async () => findButton('Delete').click());
+  await act(async () => findButton('Delete permanently').click());
+  expect(deletes()).toBe(1);
+  expect(findButton('Delete permanently').disabled).toBe(true);
+  expect(findButton('Verify test identity')).toBeDefined();
+  await act(async () => findButton('Verify test identity').click());
+  expect(deletes()).toBe(1);
+  expect(findButton('Delete permanently').disabled).toBe(false);
+  expect(document.body.textContent).toContain('Identity verified.');
+});

@@ -1,0 +1,59 @@
+{
+  "name": "nexus-full-stack-saas-analytics-platform",
+  "version": "2.0.0",
+  "private": true,
+  "dependencies": {
+    "@emotion/react": "^11.11.0",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.15.0",
+    "@mui/material": "^5.15.0",
+    "@supabase/supabase-js": "^2.0.0",
+    "libphonenumber-js": "^1.13.14",
+    "motion": "^12.0.0",
+    "qrcode.react": "4.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.4.1",
+    "react-router-dom": "7.18.4",
+    "three": "^0.186.1",
+    "web-vitals": "^3.5.0"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "dev": "node scripts/dev.js",
+    "start:api": "npm --prefix \"Backend Server\" start",
+    "lint": "eslint src --ext .js,.jsx --max-warnings 0",
+    "test:server": "npm --prefix \"Backend Server\" test",
+    "check": "npm run lint && npm run test:ui && npm run test:server && npm run build",
+    "test:ui": "react-scripts test --watchAll=false --runInBand",
+    "build:release": "node scripts/release-env-check.js && react-scripts build"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "react-scripts": "^5.0.1"
+  },
+  "jest": {
+    "moduleNameMapper": {
+      "^react-router/dom$": "<rootDir>/node_modules/react-router/dist/development/dom-export.js"
+    }
+  }
+}

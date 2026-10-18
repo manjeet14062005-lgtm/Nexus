@@ -1,0 +1,44 @@
+/* One interaction treatment for public pages, console screens and portals.
+   These overrides intentionally win over page-local MUI accent focus styles. */
+html body :is(button, a, [role="button"], [role="menuitem"], [role="tab"], [tabindex]):focus-visible {
+  outline: 2px solid var(--nexus-interaction-border, #45685b) !important;
+  outline-offset: 3px !important;
+  box-shadow: none !important;
+}
+
+html body :is(button, a, [role="button"], [role="menuitem"], [role="tab"]):focus:not(:focus-visible) {
+  outline: none !important;
+}
+
+html body .MuiOutlinedInput-root.Mui-focused {
+  outline: none !important;
+  box-shadow: 0 2px 8px rgba(24, 46, 37, .06) !important;
+}
+
+html body .MuiOutlinedInput-root.Mui-focused:not(.Mui-error) .MuiOutlinedInput-notchedOutline {
+  border-color: var(--nexus-interaction-border, #45685b) !important;
+  border-width: 1px !important;
+  box-shadow: none !important;
+}
+
+html body .MuiInputLabel-root.Mui-focused:not(.Mui-error) {
+  color: var(--nexus-interaction-border, #45685b) !important;
+}
+
+html body .MuiInputBase-input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+html body :is(input, textarea, select):not(.MuiInputBase-input):focus-visible {
+  outline: 2px solid var(--nexus-interaction-border, #45685b) !important;
+  outline-offset: 2px !important;
+  box-shadow: none !important;
+}
+
+@media (forced-colors: active) {
+  html body :focus-visible { outline-color: Highlight !important; }
+  html body .MuiOutlinedInput-root.Mui-focused:not(.Mui-error) .MuiOutlinedInput-notchedOutline {
+    border-color: Highlight !important;
+  }
+}

@@ -1,0 +1,86 @@
+import { useCallback, useEffect, useMemo, useState, useId } from "react";
+import { Alert, Box, Button, Skeleton, TextField, MenuItem } from "@mui/material";
+import DownloadRounded from "@mui/icons-material/DownloadRounded";
+import RefreshRounded from "@mui/icons-material/RefreshRounded";
+import ScheduleRounded from "@mui/icons-material/ScheduleRounded";
+import DescriptionOutlined from "@mui/icons-material/DescriptionOutlined";
+import ShieldOutlined from "@mui/icons-material/ShieldOutlined";
+import QueryStatsRounded from "@mui/icons-material/QueryStatsRounded";
+import PlayArrowRounded from "@mui/icons-material/PlayArrowRounded";
+import EditOutlined from "@mui/icons-material/EditOutlined";
+import PauseRounded from "@mui/icons-material/PauseRounded";
+import { toast } from "react-hot-toast";
+import { apiDownload, apiRequest } from "../../services/apiClient.js";
+import { hasWorkspacePermission } from "../../lib/workspacePermissions.js";
+import { useOperationResource, useOperationWorkspaces } from "../operations/useOperationsData.js";
+import { BusyLabel, ConfirmPause, EmptyState, ErrorNotice, formatCount, formatDate, OperationsHeader, OperationsShell, PlanNotice, PrimaryAction, SectionHeading, StatGrid, StatusChip, WorkspaceSelect } from "../operations/OperationsUI.jsx";
+import { ScheduleEditor } from "./ScheduleEditor.jsx";
+
+export const RANGE_OPTIONS = [[7, "7 days"], [30, "30 days"], [90, "90 days"], [365, "1 year"]];
+function ActivityChart({ series }) {
+  const id = useId().replace(/:/g, "");
+  const rows = Array.isArray(series) ? series : [];
+  const max = Math.max(2, ...rows.map(row => Number(row.requests) || 0));
+  const points = key => rows.map((row, i) => (50 + i / Math.max(rows.length - 1, 1) * 650) + "," + (190 - (Number(row[key]) || 0) / max * 150)).join(" ");
+  return <><svg viewBox="0 0 740 235" className="ops-chart" role="img" aria-label={"Daily verification activity across " + rows.length + " days"}><defs><linearGradient id={id} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#71957b" stopOpacity=".2" /><stop offset="1" stopColor="#71957b" stopOpacity="0" /></linearGradient></defs>{[0, .5, 1].map(value => <g key={value}><line x1="50" x2="705" y1={190 - value * 150} y2={190 - value * 150} stroke="var(--ops-line)" strokeDasharray="3 5" /><text x="0" y={194 - value * 150} fill="var(--ops-muted)" fontSize="10">{formatCount(Math.round(max * value))}</text></g>)}{rows.length > 0 && <><polygon points={"50,190 " + points("requests") + " " + (rows.length === 1 ? 50 : 700) + ",190"} fill={"url(#" + id + ")"} /><polyline points={points("requests")} fill="none" stroke="#60836c" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /><polyline points={points("verified")} fill="none" stroke="#bccdb6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />{rows.length === 1 && <circle cx="50" cy={190 - (Number(rows[0].requests) || 0) / max * 150} r="4" fill="#60836c" />}<text x="50" y="220" fontSize="10" fill="var(--ops-muted)">{formatDate(rows[0].day)}</text><text x="700" y="220" textAnchor="end" fontSize="10" fill="var(--ops-muted)">{formatDate(rows[rows.length - 1].day)}</text></>}</svg><div className="ops-chart-legend"><span>Requests</span><span>Verified</span></div></>;
+}
+export function ReportsPage({ user, darkMode }) {
+  const ws = useOperationWorkspaces(user);
+  const [range, setRange] = useState(30); const [environment, setEnvironment] = useState("all");
+  const canSchedule = hasWorkspacePermission(ws.workspace?.role, "reports.schedule");
+  const canExport = hasWorkspacePermission(ws.workspace?.role, "reports.export");
+  const base = "/workspaces/" + encodeURIComponent(ws.workspaceId);
+  const reportLoader = useCallback(async signal => (await apiRequest(user, base + "/analytics?range=" + range + "&environment=" + environment, { signal })).analytics, [user, base, range, environment]);
+  const reports = useOperationResource(ws.workspaceId ? [ws.workspaceId, range, environment].join(":") : "", reportLoader);
+  const scheduleLoader = useCallback(async signal => (await apiRequest(user, base + "/report-schedules", { signal })).schedules || [], [user, base]);
+  const schedules = useOperationResource(canSchedule ? ws.workspaceId : "", scheduleLoader);
+  const entitlementLoader = useCallback(signal => apiRequest(user, base + "/entitlements", { signal }), [user, base]);
+  const entitlements = useOperationResource(ws.workspaceId, entitlementLoader);
+  const deliveryEnabled = Boolean(entitlements.data?.plan?.featureFlags?.scheduledReports);
+  const [exporting, setExporting] = useState(false); const [busy, setBusy] = useState("");
+  const [pauseItem, setPauseItem] = useState(null); const [editor, setEditor] = useState(null);
+  const [search, setSearch] = useState(""); const [page, setPage] = useState(0); const [view, setView] = useState("overview");
+  useEffect(() => { setPage(0); setSearch(""); setEditor(null); setPauseItem(null); }, [ws.workspaceId]);
+  useEffect(() => { setPage(0); setSearch(""); }, [range, environment]);
+  const report = reports.data; const totals = report?.totals || {};
+  const rows = useMemo(() => (report?.series || []).filter(row => String(row.day).includes(search)).slice().reverse(), [report, search]);
+  const lastPage = Math.max(0, Math.ceil(rows.length / 10) - 1);
+  async function download() {
+    if (!canExport || exporting) return;
+    setExporting(true);
+    try {
+      const blob = await apiDownload(user, base + "/reports/verification.csv?range=" + range + "&environment=" + environment);
+      const url = URL.createObjectURL(blob); const anchor = document.createElement("a");
+      anchor.href = url; anchor.download = "nexus-verification-" + environment + "-" + range + "d.csv"; document.body.appendChild(anchor); anchor.click(); anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000); toast.success("Your report has been downloaded.");
+    } catch (err) { toast.error(err.message || "Export failed."); } finally { setExporting(false); }
+  }
+  async function scheduleAction(item, type) {
+    if (busy || !canSchedule || (type !== "pause" && !deliveryEnabled)) return;
+    if (type === "run" && !window.confirm('Send "' + item.name + '" now to ' + (item.recipients || []).join(", ") + "?")) return;
+    setBusy(item.id);
+    try {
+      await apiRequest(user, base + "/report-schedules/" + encodeURIComponent(item.id) + (type === "run" ? "/run" : ""), { method: type === "run" ? "POST" : type === "pause" ? "DELETE" : "PATCH", ...(type === "resume" ? { body: JSON.stringify({ enabled: true }) } : {}) });
+      toast.success(type === "run" ? "Report sent." : type === "pause" ? "Delivery paused." : "Delivery resumed."); setPauseItem(null); schedules.refresh();
+    } catch (err) { toast.error(err.message || "Unable to update delivery."); } finally { setBusy(""); }
+  }
+  return <OperationsShell darkMode={darkMode}>
+    <OperationsHeader number="02" title="Report desk" description="A clear picture of your verification activity. Ready to share." actions={<><Button variant="outlined" startIcon={<ScheduleRounded />} disabled={!canSchedule || !deliveryEnabled || Boolean(busy)} onClick={() => setEditor({})}>Schedule delivery</Button><PrimaryAction startIcon={<DownloadRounded />} onClick={download} disabled={!canExport || exporting || ws.loading || !ws.workspaceId}><BusyLabel busy={exporting}>{exporting ? "Preparing CSV…" : "Export report"}</BusyLabel></PrimaryAction></>} />
+    <ErrorNotice error={ws.error} retry={ws.refresh} />
+    <div className="ops-toolbar"><WorkspaceSelect data={ws} disabled={Boolean(busy)} /><TextField select size="small" label="Report period" value={range} onChange={e => setRange(Number(e.target.value))} sx={{ minWidth: 145 }}>{RANGE_OPTIONS.map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}</TextField><div className="ops-segment" aria-label="Report environment">{["all", "live", "test"].map(value => <button key={value} aria-pressed={environment === value} onClick={() => setEnvironment(value)}>{value === "all" ? "All environments" : value === "live" ? "Live" : "Test"}</button>)}</div><div className="ops-toolbar-spacer" /><span className="ops-updated">{reports.loading ? "Updating report" : "Workspace data"}</span><Button aria-label="Refresh report" onClick={() => { reports.refresh(); schedules.refresh(); entitlements.refresh(); }} disabled={!ws.workspaceId || reports.loading} startIcon={<RefreshRounded />}>Refresh</Button></div>
+    <ErrorNotice error={reports.error} retry={reports.refresh} />
+    {ws.loading || (reports.loading && !report) ? <Skeleton variant="rounded" height={290} /> : !ws.workspaceId ? <div className="ops-panel"><EmptyState icon={DescriptionOutlined} title="Your report desk starts here" description="Create or join a workspace to view verification activity and generate reports." action={<PrimaryAction href="/workspace">Open workspaces</PrimaryAction>} /></div> : report && <>
+      <StatGrid items={[{ label: "Total requests", value: formatCount(totals.requests), note: range + "-day reporting period", icon: QueryStatsRounded }, { label: "Verified identities", value: formatCount(totals.verified), note: "Successfully completed", icon: ShieldOutlined }, { label: "Verification rate", value: (Number(totals.verificationRate) || 0) + "%", note: "Verified / completed requests", icon: ShieldOutlined }, { label: "High-risk requests", value: formatCount(totals.highRisk), note: "Risk score of 80 or above", icon: DescriptionOutlined }]} />
+      <div className="ops-two-column"><section className="ops-panel"><SectionHeading label="PERFORMANCE / OVER TIME" title="The story behind the numbers" description={formatDate(report.range?.start) + " — " + formatDate(report.range?.end)} action={<div className="ops-segment">{["overview", "daily"].map(value => <button key={value} onClick={() => setView(value)} aria-pressed={view === value}>{value === "overview" ? "Chart" : "Daily detail"}</button>)}</div>} />{view === "overview" ? <><ActivityChart series={report.series} />{!Number(totals.requests) && <p style={{ marginTop: 20 }}>No requests in this period. Activity will appear when your workspace receives verification traffic.</p>}</> : <><TextField className="ops-search" size="small" label="Find a date" placeholder="YYYY-MM-DD" value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} sx={{ mb: 2 }} /><div className="ops-table-wrap"><table className="ops-table"><thead><tr>{["Date", "Requests", "Verified", "Failed", "High risk"].map(label => <th key={label}>{label}</th>)}</tr></thead><tbody>{rows.slice(Math.min(page, lastPage) * 10, (Math.min(page, lastPage) + 1) * 10).map(row => <tr key={row.day}><td>{formatDate(row.day)}</td>{["requests", "verified", "failed", "highRisk"].map(key => <td key={key}>{formatCount(row[key])}</td>)}</tr>)}</tbody></table></div>{!rows.length && <p>No days match your search.</p>}<div className="ops-pager"><Button disabled={page === 0} onClick={() => setPage(page - 1)}>Previous</Button><span>{Math.min(page, lastPage) + 1} / {lastPage + 1}</span><Button disabled={page >= lastPage} onClick={() => setPage(page + 1)}>Next</Button></div></>}</section>
+      <aside className="ops-panel"><SectionHeading label="EXPORT / CSV" title="Your report, at a glance" /><div className="ops-document"><div className="ops-document-brand"><img src="/assets/nexus-mark.svg" alt="" />Nexus</div><div className="ops-eyebrow">VERIFICATION REPORT</div><h3>{ws.workspace?.name || "Workspace"}</h3><p>{range} days · {environment === "all" ? "All environments" : environment}</p><div className="ops-document-meta"><div><small>FROM</small>{formatDate(report.range?.start)}</div><div><small>TO</small>{formatDate(report.range?.end)}</div><div><small>REQUESTS</small>{formatCount(totals.requests)}</div><div><small>PLAN</small>{report.plan?.name || "—"}</div></div><p>Daily volume, verification outcomes, risk signals and quota metrics in one CSV.</p><div className="ops-document-footer"><span>NEXUS / WORKSPACE REPORT</span><DescriptionOutlined sx={{ fontSize: 16 }} /></div></div><Button fullWidth variant="outlined" startIcon={<DownloadRounded />} sx={{ mt: 2 }} disabled={!canExport || exporting} onClick={download}>Download CSV</Button>{!canExport && <p style={{ marginTop: 10 }}>Your workspace role can view reports but cannot export them.</p>}</aside></div>
+      <div className="ops-two-column"><section className="ops-panel"><SectionHeading label="OUTCOMES" title="Every request accounted for" description="Aggregate counts across the entire reporting period." />{["verified", "failed", "expired"].map((key, index) => <div className="ops-outcome" key={key}><span className="ops-outcome-label">{key[0].toUpperCase() + key.slice(1)}</span><div className="ops-bar-track"><div className="ops-bar-fill" style={{ width: Math.min(100, Math.max(0, (Number(totals[key]) || 0) / Math.max(1, Number(totals.requests) || 0) * 100)) + "%", background: ["#60836c", "#b48b7c", "#c5b18b"][index] }} /></div><strong>{formatCount(totals[key])}</strong></div>)}</section><section className="ops-panel"><SectionHeading label="DATA COVERAGE" title="Clarity you can trust" /><p>Report totals and CSV exports use daily aggregates for the full selected period. Recent-request and risk-detail views may use a capped sample.</p>{report.detailTruncated && <Alert severity="info" sx={{ mt: 2 }}>Detailed records are capped at 5,000. Aggregate totals cover the full period.</Alert>}<div className="ops-document-meta"><div><small>REPORT PERIOD</small>{range} days</div><div><small>ENVIRONMENT</small>{environment === "all" ? "Live + test" : environment}</div></div></section></div>
+    </>}
+    {ws.workspaceId && <section className="ops-panel"><SectionHeading label="DELIVERY / AUTOMATIC" title="Keep your team in the loop" description={canSchedule ? "CSV reports delivered to the right inboxes, on your schedule." : "Scheduling is managed by your workspace owner, admin or analyst."} action={<Button variant="outlined" startIcon={<ScheduleRounded />} disabled={!canSchedule || !deliveryEnabled} onClick={() => setEditor({})}>New schedule</Button>} />
+      <ErrorNotice error={entitlements.error} retry={entitlements.refresh} />{entitlements.data && !deliveryEnabled && <PlanNotice feature="Scheduled delivery" plan={entitlements.data.plan?.name} />}<ErrorNotice error={schedules.error} retry={schedules.refresh} />
+      {!canSchedule ? <p>Your role can view reports. Contact your workspace owner to configure delivery.</p> : schedules.loading && !schedules.data ? <Skeleton height={150} /> : !schedules.error && !(schedules.data || []).length ? <EmptyState icon={ScheduleRounded} title="Make reporting a routine" description="Schedule a daily briefing, a weekly digest, or a monthly review. Choose a timezone and up to five recipients." action={<Button className="ops-link" onClick={() => setEditor({})} disabled={!deliveryEnabled}>Set up delivery →</Button>} /> : <div className="ops-table-wrap"><table className="ops-table"><thead><tr><th>Schedule</th><th>Delivery</th><th>Recipients</th><th>Status</th><th>Manage</th></tr></thead><tbody>{(schedules.data || []).map(item => <tr key={item.id}><td><strong>{item.name}</strong><small>{item.range} days · {item.environment || "all"}</small></td><td>{item.frequency} at {item.time}<small>{item.timezone}</small><small>{item.enabled !== false ? "Next: " + formatDate(item.nextRunAt, true) : "Delivery paused"}</small></td><td>{(item.recipients || []).length} recipient(s)<small>{(item.recipients || []).join(", ")}</small></td><td><StatusChip enabled={item.enabled !== false && deliveryEnabled} label={item.enabled === false ? "Paused" : deliveryEnabled ? "Active" : "Plan paused"} /><small>{item.lastStatus ? "Last: " + item.lastStatus : "No deliveries yet"}</small>{item.lastError && <small style={{ color: "#b25e49" }}>{item.lastError}</small>}</td><td><Box sx={{ display: "flex", flexWrap: "wrap", gap: .5 }}><Button size="small" startIcon={<EditOutlined />} disabled={Boolean(busy) || !deliveryEnabled} onClick={() => setEditor(item)}>Edit</Button><Button size="small" startIcon={<PlayArrowRounded />} disabled={Boolean(busy) || !deliveryEnabled || item.enabled === false} onClick={() => scheduleAction(item, "run")}>{busy === item.id ? "Working…" : "Send now"}</Button><Button size="small" startIcon={<PauseRounded />} disabled={Boolean(busy) || (item.enabled === false && !deliveryEnabled)} onClick={() => item.enabled === false ? scheduleAction(item, "resume") : setPauseItem(item)}>{item.enabled === false ? "Resume" : "Pause"}</Button></Box></td></tr>)}</tbody></table></div>}
+    </section>}
+    <div className="ops-footer"><span>NEXUS REPORT DESK / DESIGNED FOR CLARITY</span><span>Workspace permissions apply to every export and delivery.</span></div>
+    <ConfirmPause item={pauseItem} busy={Boolean(busy)} onClose={() => setPauseItem(null)} onConfirm={() => scheduleAction(pauseItem, "pause")} kind="delivery schedule" />
+    {editor && <ScheduleEditor key={editor.id || "new"} item={editor} defaults={{ range, environment, recipients: user?.email || "" }} user={user} base={base} darkMode={darkMode} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); schedules.refresh(); }} />}
+  </OperationsShell>;
+}

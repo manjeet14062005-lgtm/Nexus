@@ -555,7 +555,6 @@ app.delete("/workspaces/:workspaceId/members/:memberId", authenticate, requireWo
 app.get("/workspaces/:workspaceId/export.json", authenticate, requireWorkspaceRole(["owner", "admin", "analyst"]), async (req, res) => {
   try {
     const { exportWorkspaceData } = require("./workspaceDataExport");
-const { buildPersonalExport, createDeletionRequest, cancelDeletionRequest, startAccountDeletionWorker } = require("./accountLifecycle");
     const payload = await exportWorkspaceData(req.params.workspaceId);
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.setHeader("Content-Disposition", `attachment; filename="nexus-workspace-${req.params.workspaceId}.json"`);

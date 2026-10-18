@@ -1,3 +1,5 @@
+# Bootstrap creates the two service addresses first. Add hosted URL and signup-hook
+# settings privately in Render before the first successful release (see README).
 services:
   - type: web
     name: nexus-frontend
@@ -20,15 +22,9 @@ services:
         value: 22
       - key: NEXUS_RELEASE_BUILD
         value: "true"
-      - key: REACT_APP_OTP_SERVER_URL
-        sync: false
       - key: REACT_APP_SUPABASE_URL
         sync: false
       - key: REACT_APP_SUPABASE_PUBLISHABLE_KEY
-        sync: false
-      - key: REACT_APP_SUPABASE_EMAIL_REDIRECT_URL
-        sync: false
-      - key: REACT_APP_SUPABASE_OAUTH_REDIRECT_URL
         sync: false
   - type: web
     name: nexus-api
@@ -63,8 +59,6 @@ services:
         value: "true"
       - key: ACCOUNT_DELETION_WORKER_ENABLED
         value: "true"
-      - key: FRONTEND_URL
-        sync: false
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SECRET_KEY
@@ -85,10 +79,6 @@ services:
         sync: false
       - key: SIGNUP_PROOF_SECRET
         generateValue: true
-      - key: SUPABASE_BEFORE_USER_CREATED_SECRET
-        sync: false
-      - key: NEXUS_SIGNUP_HOOK_ENABLED
-        sync: false
       - key: TWILIO_ACCOUNT_SID
         sync: false
       - key: TWILIO_AUTH_TOKEN

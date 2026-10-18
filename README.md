@@ -108,7 +108,7 @@ Only source code and placeholder `.env.example` files belong in the repository. 
 5. Verify the API explicitly says Free and no paid worker appears before deploying.
 6. Enter secret values only in Render's environment settings. Use `Backend Server/.env.example` as the variable-name reference. Do not paste secrets into chat or GitHub.
 
-Use the frontend and API HTTPS addresses assigned by Render, not localhost and not guessed addresses. Initial services may fail while these values and the signup hook are being connected; keep the strict checks enabled and redeploy once configured.
+The initial Blueprint creates the services before their public addresses are known. Hosted URLs and signup-hook settings are added manually in each service’s Environment screen after creation; the first build/start is expected to fail closed until these required settings are complete. Use the frontend and API HTTPS addresses assigned by Render, not localhost and not guessed addresses. Initial services may fail while these values and the signup hook are being connected; keep the strict checks enabled and redeploy once configured.
 
 ### 4. Connect the public addresses
 

@@ -60,6 +60,7 @@ const { getBillingPreferences, updateBillingPreferences, DEFAULT_PREFERENCES } =
 const { summarizeVerificationUsage } = require("./billingUsage");
 const { getWorkspaceBranding, updateWorkspaceBranding } = require("./workspaceBranding");
 const { createRateLimiter } = require("./rateLimiter");
+const { buildPersonalExport, createDeletionRequest, cancelDeletionRequest, startAccountDeletionWorker } = require("./accountLifecycle");
 const { startRetentionWorker } = require("./retention");
 const { checkReadiness, collectConfigStatus } = require("./readiness");
 const { listApiLogs } = require("./requestLogs");

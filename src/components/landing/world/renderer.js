@@ -85,7 +85,7 @@ function signalCloud(count, weights, clock, pixelRatio) {
   const points = new THREE.Points(geometry, material); points.frustumCulled = false; return points;
 }
 
-export function createSignalRenderer(host, level, onLost, onDegrade) {
+export function createSignalRenderer(host, level, onLost, onDegrade, onFirstFrame = () => {}) {
   const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: level === "full", powerPreference: "high-performance" });
   renderer.setClearColor(0, 0); renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.NeutralToneMapping; renderer.toneMappingExposure = 1.15;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, level === "full" ? 1.5 : 1.1)); host.appendChild(renderer.domElement);
@@ -111,6 +111,7 @@ export function createSignalRenderer(host, level, onLost, onDegrade) {
   const floorCanvas = document.createElement("canvas"); floorCanvas.width = floorCanvas.height = 128;
   const ctx = floorCanvas.getContext("2d"), gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64); gradient.addColorStop(0, "rgba(52,58,118,.17)"); gradient.addColorStop(1, "rgba(52,58,118,0)"); ctx.fillStyle = gradient; ctx.fillRect(0, 0, 128, 128);
   const texture = new THREE.CanvasTexture(floorCanvas), shadow = new THREE.Mesh(new THREE.PlaneGeometry(7, 3.5), new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false })); shadow.rotation.x = -Math.PI / 2; shadow.position.y = -2.7; scene.add(shadow);
+  let firstFrameDrawn = false;
   const pointer = { x: 0, y: 0, targetX: 0, targetY: 0 }; let width = 1, height = 1, disposed = false, lost = false, runningTime = 0, lastChange = performance.now(), reported = false;
   const samples = [], debug = process.env.NODE_ENV !== "production" && new URLSearchParams(window.location.search).has("perf");
   const resize = () => { const bounds = host.getBoundingClientRect(); width = bounds.width; height = bounds.height; renderer.setSize(Math.max(1, width), Math.max(1, height), false); camera.aspect = width / Math.max(1, height); camera.updateProjectionMatrix(); };
@@ -143,6 +144,7 @@ export function createSignalRenderer(host, level, onLost, onDegrade) {
       }
       beads.instanceMatrix.needsUpdate = true;
       renderer.render(scene,camera);
+      if (!firstFrameDrawn && width > 0 && height > 0) { firstFrameDrawn = true; onFirstFrame(); }
       if (dt < .15) { samples.push(dt*1000); if(samples.length>120)samples.shift(); }
       if(level === "full" && !reported && shouldDegrade(samples, performance.now(), lastChange)){reported=true;lastChange=performance.now();onDegrade();}
       if(debug){host.dataset.tier=level;host.dataset.particles=String(cloud.geometry.attributes.seed.count);host.dataset.drawCalls=String(renderer.info.render.calls);host.dataset.frameMs=(dt*1000).toFixed(2);host.dataset.progress=progress.toFixed(3);}

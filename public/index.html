@@ -25,11 +25,32 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <script>if(window.location.pathname === '/') document.documentElement.classList.add('nexus-landing-booting');</script>
+    <style>
+      #nexus-startup-loader{position:fixed;inset:0;z-index:2147483000;display:grid;place-content:center;justify-items:center;gap:18px;background:#f8f9fc;color:#18283f;font:500 15px/1.5 system-ui,sans-serif;opacity:0;visibility:hidden;transition:opacity .25s ease,visibility .25s ease}
+      .nexus-landing-booting #nexus-startup-loader{opacity:1;visibility:visible}
+      .nexus-landing-booting #root{visibility:hidden}
+      html.nexus-landing-booting,html.nexus-landing-booting body{overflow:hidden}
+      .nexus-startup-orbit{width:64px;height:64px;display:grid;place-items:center;position:relative}
+      .nexus-startup-orbit:before{content:'';position:absolute;inset:0;border:2px solid #e0e6f2;border-top-color:#355bc3;border-right-color:#9c92cf;border-radius:50%;animation:nexus-startup-spin 1s linear infinite}
+      .nexus-startup-orbit img{width:30px;height:30px}
+      #nexus-startup-loader p{margin:0;letter-spacing:.02em}
+      .nexus-startup-help{font-size:13px;color:#52627a;opacity:0;animation:nexus-startup-help 0s 15s forwards}
+      .nexus-startup-help a{color:#355bc3;text-underline-offset:3px}
+      @keyframes nexus-startup-spin{to{transform:rotate(360deg)}}
+      @keyframes nexus-startup-help{to{opacity:1}}
+      @media(prefers-reduced-motion:reduce){#nexus-startup-loader{transition:none}.nexus-startup-orbit:before{animation:none;border-top-color:#355bc3}}
+    </style>
     <title>Nexus — Verification Infrastructure</title>
 
   </head>
   <body>
     <noscript><h1>Nexus — Trust opens everything.</h1><p>Email and phone verification, analytics, webhooks and team roles in one connected workspace. Enable JavaScript to use the interactive application.</p><a href="/register">Get started</a> · <a href="/login">Sign in</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></noscript>
+    <div id="nexus-startup-loader" role="status" aria-live="polite" aria-label="Loading Nexus">
+      <div class="nexus-startup-orbit" aria-hidden="true"><img src="%PUBLIC_URL%/assets/nexus-mark.svg" alt="" width="30" height="30" /></div>
+      <p>Getting Nexus ready</p>
+      <span class="nexus-startup-help">Taking longer than expected? <a href="/">Reload page</a></span>
+    </div>
     <div id="root"></div>
   </body>
 </html>

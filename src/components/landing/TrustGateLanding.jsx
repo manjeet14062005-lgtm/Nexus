@@ -4,6 +4,7 @@ import { flushSync } from "react-dom";
 import { createChoreographer } from "./motion/choreographer";
 import { motionTokens } from "./motion/tokens";
 import { useCinematicLevel } from "./hooks/useCinematicLevel";
+import { useLandingReveal } from "./hooks/useLandingReveal";
 import { SignalPoster } from "./world/SignalPoster";
 import { DeveloperCode, RolesMatrix, Simulator, WorkflowGraph } from "./sections/InteractiveSections";
 import { CommandMenu } from "./sections/CommandMenu";
@@ -30,6 +31,8 @@ export function TrustGateLanding() {
   const track = useRef(null), canvasHost = useRef(null), renderer = useRef(null);
   const [chapter, setChapter] = useState(0), [menu, setMenu] = useState(false), [notice, setNotice] = useState("");
   const [sceneReady, setSceneReady] = useState(false);
+  const [visualReady, setVisualReady] = useState(false);
+  const pageReady = useLandingReveal(visualReady);
   const [heroActive, setHeroActive] = useState(true);
   useEffect(() => {
     const targets = document.querySelectorAll('.trust-gate .tg-section, .trust-gate .tg-band, .trust-gate .tg-security, .trust-gate .tg-intro, .trust-gate .tg-finale');
@@ -45,18 +48,31 @@ export function TrustGateLanding() {
     return () => { observer.disconnect(); ambient.disconnect(); };
   }, [level]);
   useEffect(() => {
-    if (level === "off") { setSceneReady(false); return undefined; }
+    if (level === "off") { setSceneReady(false); setVisualReady(true); return undefined; }
     let stopped = false, dispose = null;
+    setSceneReady(false);
+    const fallback = () => {
+      if (stopped) return;
+      stopped = true;
+      clearTimeout(timeout);
+      dispose?.(); renderer.current = null;
+      setSceneReady(false); setVisualReady(true);
+      setNotice("Showing the static illustration. All page features remain available.");
+    };
+    const timeout = setTimeout(fallback, 7000);
     const start = async () => {
       try {
         const { createSignalRenderer } = await import(/* webpackChunkName: "living-signal-scene" */ "./world/renderer");
         if (stopped) return;
-        const scene = createSignalRenderer(canvasHost.current, level, () => { setSceneReady(false); setNotice("The static illustration is enabled because 3D is unavailable."); }, () => { setNotice("Lite mode enabled for smoother performance."); motion.degrade(); });
-        renderer.current = scene; dispose = scene.dispose; setSceneReady(true);
-      } catch { if (!stopped) { setSceneReady(false); setNotice("Showing the static illustration. All page features remain available."); } }
+        const scene = createSignalRenderer(canvasHost.current, level, fallback,
+          () => { setNotice("Lite mode enabled for smoother performance."); motion.degrade(); },
+          () => { if (!stopped) { clearTimeout(timeout); setSceneReady(true); setVisualReady(true); } });
+        renderer.current = scene; dispose = scene.dispose;
+      } catch { fallback(); }
     };
-    const idle = window.requestIdleCallback ? window.requestIdleCallback(start, { timeout: 1500 }) : window.setTimeout(start, 350);
-    return () => { stopped = true; if (window.cancelIdleCallback) window.cancelIdleCallback(idle); else clearTimeout(idle); dispose?.(); renderer.current = null; setSceneReady(false); };
+    // Start immediately: the loader covers shader compilation and the first paint.
+    start();
+    return () => { stopped = true; clearTimeout(timeout); dispose?.(); renderer.current = null; };
   // Only recreate the scene when the chosen quality changes.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [level]);
@@ -78,7 +94,7 @@ export function TrustGateLanding() {
     const transition = document.startViewTransition(() => flushSync(() => navigate(path)));
     transition.ready.catch(() => {}); transition.finished.catch(() => {}).finally(() => { html.classList.remove("tg-route-transition"); html.style.removeProperty("--tg-route-x"); html.style.removeProperty("--tg-route-y"); });
   };
-  return <div className="trust-gate" data-motion={level} onClickCapture={routeTransition} style={{ "--tg-ease": motionTokens.ease, "--tg-ui": `${motionTokens.ui}ms` }}>
+  return <div className="trust-gate" aria-busy={!pageReady} data-motion={level} onClickCapture={routeTransition} style={{ "--tg-ease": motionTokens.ease, "--tg-ui": `${motionTokens.ui}ms` }}>
     {process.env.NODE_ENV !== "production" && new URLSearchParams(window.location.search).has("perf") && <SceneInspector track={track} renderer={renderer}/>}
     <a className="tg-skip" href="#main">Skip to content</a>
     <header className="tg-header"><Brand/><nav className="tg-desktop-nav" aria-label="Main navigation"><a href="#platform">Platform</a><a href="#developers">Developers</a><a href="#questions">Questions</a></nav><div className="tg-header-actions"><Link className="tg-signin" to="/login">Sign in</Link><Link className="tg-button tg-button-small" to="/register">Get started <span>↗</span></Link><button id="tg-menu-button" className="tg-menu-toggle" aria-expanded={menu} aria-controls="tg-mobile-nav" onClick={() => setMenu(!menu)}>{menu ? "Close" : "Menu"}</button></div>{menu && <nav id="tg-mobile-nav" className="tg-mobile-nav" aria-label="Mobile navigation">{[["Platform","#platform"],["Developers","#developers"],["Questions","#questions"]].map(([name,url])=><a key={name} href={url} onClick={()=>setMenu(false)}>{name} ↗</a>)}<Link to="/login">Sign in ↗</Link></nav>}</header>

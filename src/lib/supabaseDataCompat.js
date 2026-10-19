@@ -150,12 +150,14 @@ export function onSnapshot(ref, ...args) {
   if (typeof callback !== 'function') return () => {};
 
   let active = true;
+  let authRefreshTimer = null;
   let fallbackTimer = null;
   let channel = null;
   let authSubscription = null;
 
   const cleanup = () => {
     active = false;
+    clearTimeout(authRefreshTimer);
     if (fallbackTimer) {
       clearInterval(fallbackTimer);
       fallbackTimer = null;
@@ -220,7 +222,10 @@ export function onSnapshot(ref, ...args) {
       return;
     }
     if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-      void emit();
+      // Never read sessions from inside the auth event lock. Coalesce repeated
+      // auth events in one turn and let the session update finish first.
+      clearTimeout(authRefreshTimer);
+      authRefreshTimer = setTimeout(() => { void emit(); }, 0);
     }
   });
   authSubscription = authListener?.data?.subscription || authListener?.subscription || null;

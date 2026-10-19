@@ -618,8 +618,10 @@ app.post("/workspaces/:workspaceId/api-keys/:keyId/revoke", authenticate, requir
 
 app.get("/workspaces/:workspaceId/usage", authenticate, requireWorkspaceRole(["owner", "admin", "developer", "analyst", "viewer"]), async (req, res) => {
   try {
-    const usage = await getUsage(req.params.workspaceId, req.query?.month);
-    const plan = await getWorkspacePlan(req.params.workspaceId);
+    const [usage, plan] = await Promise.all([
+      getUsage(req.params.workspaceId, req.query?.month),
+      getWorkspacePlan(req.params.workspaceId),
+    ]);
     if (!plan) return res.status(404).json({ success: false, message: "Workspace not found." });
     const quota = summarizeVerificationUsage({ usage, limit: plan.verificationLimit, monthKey: usage.month });
     return res.json({

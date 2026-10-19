@@ -212,11 +212,17 @@ async function getWorkspaceAnalytics(workspaceId, options = {}) {
   const { days, start, end, previousStart, previousEnd } = rangeBounds(options.range);
   const allowed = selectedEnvironments(environment);
 
-  const [dailyRows, previousDailyRows, detailResult, plan] = await Promise.all([
+  const [dailyRows, previousDailyRows, detailResult, plan, currentMonthUsage] = await Promise.all([
     readDailyStats(workspaceId, start, end),
     readDailyStats(workspaceId, previousStart, previousEnd),
     readVerificationDetails(workspaceId, start, end, environment),
     getWorkspacePlan(workspaceId),
+    (async () => {
+      const month = isoMonth();
+      const ref = adminDb().collection('workspaces').doc(workspaceId).collection('usage').doc(month);
+      const snap = await ref.get();
+      return snap.exists ? { id: snap.id, ...snap.data() } : { id: month, month, verificationRequests: 0, emailRequests: 0, phoneRequests: 0 };
+    })(),
   ]);
 
   const filterEnv = (rows) => rows.filter((row) => allowed.includes(row.environment || 'live'));
@@ -273,11 +279,6 @@ async function getWorkspaceAnalytics(workspaceId, options = {}) {
   const previousTerminal = previousTotals.verified + previousTotals.failed + previousTotals.expired;
   const previousRate = previousTerminal > 0 ? Math.round((previousTotals.verified / previousTerminal) * 1000) / 10 : 0;
 
-  const currentMonthUsage = await (async () => {
-    const ref = adminDb().collection('workspaces').doc(workspaceId).collection('usage').doc(isoMonth());
-    const snap = await ref.get();
-    return snap.exists ? { id: snap.id, ...snap.data() } : { id: isoMonth(), month: isoMonth(), verificationRequests: 0, emailRequests: 0, phoneRequests: 0 };
-  })();
 
   const limit = plan?.verificationLimit == null ? null : Number(plan.verificationLimit);
   const used = Number(currentMonthUsage.verificationRequests || 0);

@@ -25,9 +25,11 @@ async function getOwnerPlan(uid) {
 
 async function listUserWorkspaces(uid) {
   const db = adminDb();
-  const [ownedSnap, memberSnap] = await Promise.all([
+  const [ownedSnap, memberSnap, owned, memberships] = await Promise.all([
     db.collection('workspaces').where('ownerUid', '==', uid).get(),
     db.collection('workspaceMembers').where('uid', '==', uid).get(),
+    supabaseAdmin.from('nexus_workspaces').select('id').eq('owner_id', uid),
+    supabaseAdmin.from('nexus_workspace_members').select('workspace_id').eq('user_id', uid),
   ]);
   const byId = new Map();
   ownedSnap.docs.forEach((doc) => byId.set(doc.id, { id: doc.id, ...doc.data(), role: 'owner' }));
@@ -36,18 +38,8 @@ async function listUserWorkspaces(uid) {
     if (!data.workspaceId || byId.has(data.workspaceId)) return;
     byId.set(data.workspaceId, { id: data.workspaceId, role: normalizeRole(data.role) || 'viewer' });
   });
-  await Promise.all([...byId.keys()].map(async (workspaceId) => {
-    const current = byId.get(workspaceId);
-    if (current?.name) return;
-    const snap = await db.collection('workspaces').doc(workspaceId).get();
-    if (snap.exists) byId.set(workspaceId, { ...current, ...snap.data(), id: workspaceId });
-  }));
-  // Include normalized records, then resolve every candidate through the same
-  // authority used by mutations. Stale legacy documents never confer access.
-  const [owned, memberships] = await Promise.all([
-    supabaseAdmin.from('nexus_workspaces').select('id').eq('owner_id', uid),
-    supabaseAdmin.from('nexus_workspace_members').select('workspace_id').eq('user_id', uid),
-  ]);
+  // Candidate IDs only: getWorkspaceMembership hydrates each workspace and
+  // checks current authority. Preloading documents here duplicated those reads.
   if (owned.error) throw owned.error;
   if (memberships.error) throw memberships.error;
   for (const row of owned.data || []) if (!byId.has(row.id)) byId.set(row.id, { id: row.id });

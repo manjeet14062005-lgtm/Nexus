@@ -129,11 +129,12 @@ export function DeveloperPortal({ user, darkMode }) {
     const request = (path) => apiRequest(user, base + path, { signal: controller.signal });
     (async () => {
       try {
-        const access = await request('/access');
+        const [access, entitlementResult] = await Promise.all([request('/access'), request('/entitlements')]);
         if (controller.signal.aborted) return;
         setWorkspaceAccess(access);
+        setEntitlements(entitlementResult);
         const role = access.workspace?.role;
-        const loaders = [request('/entitlements').then((result) => { if (!controller.signal.aborted) setEntitlements(result); })];
+        const loaders = [];
         if (hasWorkspacePermission(role, 'api_keys.read')) loaders.push(request('/api-keys').then((r) => { if (!controller.signal.aborted) setApiKeys(r.apiKeys || []); }));
         if (hasWorkspacePermission(role, 'webhooks.read')) {
           loaders.push(request('/webhooks').then((r) => { if (!controller.signal.aborted) setWebhooks(r.webhooks || []); }));

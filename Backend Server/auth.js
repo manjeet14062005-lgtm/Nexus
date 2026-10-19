@@ -50,7 +50,11 @@ async function authenticate(req, res, next) {
 
   try {
     const decoded = await adminAuth().verifyIdToken(match[1]);
-    const { data: access, error: accessError } = await supabaseAdmin.from('nexus_account_controls').select('status').eq('user_id', decoded.uid).maybeSingle();
+    // Both checks stay fresh on every request, but need not wait for each other.
+    const [{ data: access, error: accessError }, globalRole] = await Promise.all([
+      supabaseAdmin.from('nexus_account_controls').select('status').eq('user_id', decoded.uid).maybeSingle(),
+      getGlobalRole(decoded.uid, decoded),
+    ]);
     // Keep the existing installation usable while the reviewed migration is pending.
     // Administrative mutations remain unavailable until its RPC is installed.
     if (accessError && (process.env.NODE_ENV === 'production' || !['42P01','PGRST205'].includes(accessError.code))) {
@@ -59,7 +63,6 @@ async function authenticate(req, res, next) {
     if (access && access.status !== 'active') {
       return res.status(403).json({ success: false, code: 'ACCOUNT_SUSPENDED', message: 'Account access is restricted. Contact Nexus support.' });
     }
-    const globalRole = await getGlobalRole(decoded.uid, decoded);
     req.auth = {
       uid: decoded.uid,
       email: decoded.email || null,
@@ -149,14 +152,19 @@ async function getWorkspaceMembership(uid, workspaceId) {
   // Authorization source of truth: normalized workspace membership rows.
   // The compatibility document store remains a fallback for older records,
   // but it is never preferred when a normalized membership exists.
-  const { data: workspaceRow, error: workspaceError } = await supabaseAdmin
-    .from("nexus_workspaces")
-    .select("id, owner_id, name, member_count, created_at, updated_at")
-    .eq("id", String(workspaceId))
-    .maybeSingle();
+  const [workspaceResult, workspaceSnap, memberResult] = await Promise.all([
+    supabaseAdmin.from("nexus_workspaces")
+      .select("id, owner_id, name, member_count, created_at, updated_at")
+      .eq("id", String(workspaceId)).maybeSingle(),
+    adminDb().collection("workspaces").doc(workspaceId).get(),
+    supabaseAdmin.from("nexus_workspace_members")
+      .select("workspace_id, user_id, role, created_at, updated_at")
+      .eq("workspace_id", String(workspaceId)).eq("user_id", uid).maybeSingle(),
+  ]);
+  const { data: workspaceRow, error: workspaceError } = workspaceResult;
+  const { data: memberRow, error: memberError } = memberResult;
   if (workspaceError) throw workspaceError;
-
-  const workspaceSnap = await adminDb().collection("workspaces").doc(workspaceId).get();
+  if (memberError) throw memberError;
   if (!workspaceRow && !workspaceSnap.exists) return null;
 
   const workspaceDoc = workspaceSnap.exists ? workspaceSnap.data() || {} : {};
@@ -167,14 +175,6 @@ async function getWorkspaceMembership(uid, workspaceId) {
     ownerUid: workspaceRow ? workspaceRow.owner_id : workspaceDoc.ownerUid || null,
     memberCount: Number(workspaceDoc.memberCount ?? workspaceRow?.member_count ?? 0),
   };
-
-  const { data: memberRow, error: memberError } = await supabaseAdmin
-    .from("nexus_workspace_members")
-    .select("workspace_id, user_id, role, created_at, updated_at")
-    .eq("workspace_id", String(workspaceId))
-    .eq("user_id", uid)
-    .maybeSingle();
-  if (memberError) throw memberError;
 
   if (memberRow) {
     const role = normalizeWorkspaceRole(memberRow.role);

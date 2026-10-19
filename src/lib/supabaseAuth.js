@@ -32,11 +32,17 @@ function normalizeUser(user) {
 export const auth = {
   onAuthStateChanged(callback) {
     let active = true;
+    let previousUserSignature;
     if (!supabaseConfigured) { callback(null); return () => { active = false; }; }
     // INITIAL_SESSION supplies the first state. A parallel getUser request can
     // arrive after sign-out and restore a stale user. Defer consumers so their
     // asynchronous Supabase calls run outside the auth event lock.
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      // Focus and token refresh can re-emit SIGNED_IN for the same account.
+      // Tokens are read on demand; unchanged identity must not reset every page.
+      const signature = JSON.stringify(session?.user || null);
+      if (signature === previousUserSignature) return;
+      previousUserSignature = signature;
       const user = normalizeUser(session?.user || null);
       setTimeout(() => { if (active) callback(user); }, 0);
     });

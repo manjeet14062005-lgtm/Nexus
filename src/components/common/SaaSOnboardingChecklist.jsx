@@ -26,13 +26,14 @@ export const SaaSOnboardingChecklist = memo(function SaaSOnboardingChecklist({ u
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
     async function load() {
       if (!workspaceId || !user || !tasks.length) return;
       setLoading(true);
       setResult(null);
       try {
         const entries = await Promise.all(tasks.map(async (task) => {
-          const data = await apiRequest(user, `/workspaces/${encodeURIComponent(workspaceId)}/${task.endpoint}`);
+          const data = await apiRequest(user, `/workspaces/${encodeURIComponent(workspaceId)}/${task.endpoint}`, { signal: controller.signal });
           return [task.id, Boolean(task.complete(data))];
         }));
         if (!cancelled) setResult({ user, workspaceId, workspaceRole, state: Object.fromEntries(entries) });
@@ -43,7 +44,7 @@ export const SaaSOnboardingChecklist = memo(function SaaSOnboardingChecklist({ u
       }
     }
     load();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; controller.abort(); };
   }, [user, workspaceId, workspaceRole, tasks, retry]);
 
   if (!tasks.length || loading || result?.workspaceId !== workspaceId || result?.workspaceRole !== workspaceRole || result?.user !== user) return null;

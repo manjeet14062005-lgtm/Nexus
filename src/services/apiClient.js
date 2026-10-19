@@ -1,4 +1,6 @@
+import { createPendingRequests } from "./pendingRequests";
 import { OTP_SERVER_URL } from "../core/appConstants.js";
+const pendingReads = createPendingRequests();
 
 async function fetchWithTimeout(url, options = {}) {
   const {timeoutMs=30000,...fetchOptions}=options;
@@ -28,25 +30,38 @@ export async function apiRequest(user, path, options = {}) {
   if (options.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
   headers.set("X-Client-Version", "nexus-supabase-migration");
 
-  const response = await fetchWithTimeout(`${OTP_SERVER_URL}${path}`, {
-    ...options,
-    headers,
-  });
+  const method = String(options.method || 'GET').toUpperCase();
+  const load = async (signal) => {
+    const response = await fetchWithTimeout(`${OTP_SERVER_URL}${path}`, {
+      ...options,
+      signal,
+      headers,
+    });
 
-  const text = await response.text();
-  let data = {};
-  try { data = text ? JSON.parse(text) : {}; } catch (_) {
-    data = { success: false, message: `Unexpected server response (${response.status}).` };
+    const text = await response.text();
+    let data = {};
+    try { data = text ? JSON.parse(text) : {}; } catch (_) {
+      data = { success: false, message: `Unexpected server response (${response.status}).` };
+    }
+
+    if (!response.ok) {
+      const error = new Error(data.message || `Request failed with status ${response.status}.`);
+      error.status = response.status;
+      error.data = data;
+      throw error;
+    }
+
+    return data;
+  };
+  // Token + headers isolate identities and request variants. Never share writes,
+  // downloads, or completed responses. Writes invalidate pending read reuse.
+  if (method !== 'GET' || options.body || options.cache === 'no-store') {
+    pendingReads.invalidate(token);
+    return load(options.signal);
   }
-
-  if (!response.ok) {
-    const error = new Error(data.message || `Request failed with status ${response.status}.`);
-    error.status = response.status;
-    error.data = data;
-    throw error;
-  }
-
-  return data;
+  const key = JSON.stringify([token, path, [...headers.entries()], options.timeoutMs || 30000,
+    options.credentials, options.cache, options.mode, options.redirect]);
+  return pendingReads.run(token, key, load, options.signal);
 }
 
 export function apiPublic(path, options = {}) {

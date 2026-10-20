@@ -358,8 +358,12 @@ function VerificationInspector({ request, open, onClose, darkMode }) {
         sx: {
           width: { xs: "100%", sm: 470 },
           maxWidth: "100vw",
+          "--verify-rose": "#bac4d2",
+          "--verify-opal": "#91adc9",
+          "--verify-solar": "#cbd2da",
           color: darkMode ? "#F2F3F2" : "#171A1C",
-          background: darkMode
+          backgroundColor: darkMode ? "#0D0E10" : "#FFFFFC",
+          backgroundImage: darkMode
             ? "radial-gradient(circle at 90% 0%, color-mix(in oklch, var(--verify-rose) 11%, transparent), transparent 25%), linear-gradient(160deg, #161819, #0D0E10 72%)"
             : "radial-gradient(circle at 90% 0%, color-mix(in oklch, var(--verify-opal) 14%, transparent), transparent 26%), linear-gradient(160deg, #FFFFFC, #F4F3EF 72%)",
           borderLeft: `1px solid ${darkMode ? "rgba(255,255,255,.08)" : "rgba(32,36,38,.09)"}`,

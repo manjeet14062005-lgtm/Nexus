@@ -1,3 +1,4 @@
+const {apiKeySetupGuidance}=require('./intelligenceGuidance');
 const {FieldValue}=require('./supabaseDocumentStore');
 const {adminDb}=require('./supabaseAdmin');
 const {getWorkspaceAnalytics}=require('./analytics');
@@ -32,6 +33,8 @@ function createAnswerer(deps={}) {
   if(/^(?:hey|hi|hello|hiya|howdy|good morning|good afternoon|good evening|thanks|thank you)[!.,\s]*$/i.test(clean.question)) {
    return {answer:/^(thanks|thank you)/i.test(clean.question)?'You’re welcome! What would you like to explore next?':'Hey! I’m Nexus Intelligence. I can help you understand verification performance, compare email and phone methods, and explore risk signals. What would you like to look into?',source:'nexus-guidance',range:clean.range,environment:clean.environment,mode:clean.mode,evidence:[],investigation:[],allowanceUsed:false};
   }
+  const setupGuidance=apiKeySetupGuidance(clean.question);
+  if(setupGuidance)return {answer:setupGuidance,source:'nexus-guidance',guidanceKind:'integration',range:clean.range,environment:clean.environment,mode:clean.mode,evidence:[],investigation:[],allowanceUsed:false};
   const config=providerConfig(deps.apiKey?{NEXUS_AI_PROVIDER:deps.provider||'anthropic'}:process.env),apiKey=deps.apiKey??config.apiKey;
   if(!apiKey)throw Object.assign(new Error('AI service is not configured.'),{status:503,code:'AI_NOT_CONFIGURED'});
   const key=JSON.stringify([input.workspaceId,input.actorId||'workspace']);

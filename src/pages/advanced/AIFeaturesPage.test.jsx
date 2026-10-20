@@ -41,3 +41,13 @@ test('leaving the page aborts an unfinished investigation', async () => {
   await act(async () => root.render(<div>Other page</div>));
   expect(runs[0].signal.aborted).toBe(true);
 });
+
+
+test('integration guidance is labelled as curated instructions rather than a welcome or AI investigation', async () => {
+  await act(async () => root.render(<AIFeaturesPage user={user} />));
+  await ask();
+  await act(async () => runs[0].resolve({answer:'Store your API key on your backend.',source:'nexus-guidance',guidanceKind:'integration',allowanceUsed:false}));
+  expect(host.textContent).toContain('Nexus integration guidance. No AI investigation was run and no monthly question was used.');
+  expect(host.textContent).toContain('Nexus guidance · No question used');
+  expect(host.textContent).not.toContain('This is a welcome message.');
+});

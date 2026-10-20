@@ -8,7 +8,7 @@ function options(input) {
  const question=typeof input.question==='string'?input.question.trim():'';
  const range=Number(input.range??30),environment=input.environment??'all',mode=input.mode??'standard';
  if(!question||question.length>1200||![7,30,90,365].includes(range)||!['all','live','test'].includes(environment)||!['standard','deep'].includes(mode))throw failure('Enter a valid question, period, environment and reasoning mode.','AI_INVALID_INPUT',400);
- if(/sk-ant-|AIza[\w-]{25,}|\bAQ\.[\w-]{25,}|\bBearer\s+[\w.-]{20,}|\beyJ[\w-]+\.[\w-]+\.[\w-]+/i.test(question))throw failure('Remove credentials from your question before submitting.','AI_SENSITIVE_INPUT',400);
+ if(/\bnx_(?:live|test)_[A-Za-z0-9_-]{20,}|sk-ant-|AIza[\w-]{25,}|\bAQ\.[\w-]{25,}|\bBearer\s+[\w.-]{20,}|\beyJ[\w-]+\.[\w-]+\.[\w-]+/i.test(question))throw failure('Remove credentials from your question before submitting.','AI_SENSITIVE_INPUT',400);
  const history=Array.isArray(input.history)?input.history.slice(-3).filter(row=>typeof row?.question==='string'&&typeof row?.answer==='string').map(row=>({question:row.question.slice(0,1200),answer:row.answer.slice(0,4000)})):[];
  return {question,range,environment,mode,history};
 }
@@ -112,7 +112,7 @@ async function investigate({analytics,question,history=[],mode='standard',model,
    messages.push({role:'assistant',content:data.content},{role:'user',content:results});
   }
   throw failure('The investigation did not finish within its budget. Try a more focused question.');
- } catch(error) {if(error.name==='AbortError')throw failure('Analysis took too long. Please retry.','AI_TIMEOUT',504);throw error;}
+ } catch(error) {if(error.name==='AbortError')throw failure('Nexus Intelligence took too long to respond. Your allowance has not been used. Please try again later.','AI_TIMEOUT',504);throw error;}
  finally {clearTimeout(deadline);signal?.removeEventListener('abort',cancel);}
 }
 module.exports={options,evidence,investigate,validateBrief};

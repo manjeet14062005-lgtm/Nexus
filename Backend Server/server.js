@@ -141,10 +141,8 @@ app.use((req, res, next) => {
 });
 
 const HTTP_REQUEST_TIMEOUT_MS = Math.min(Math.max(Number(process.env.NEXUS_HTTP_REQUEST_TIMEOUT_MS) || 30_000, 5_000), 120_000);
-app.use((req, res, next) => {
-  res.setTimeout(HTTP_REQUEST_TIMEOUT_MS);
-  next();
-});
+const { createResponseTimeout } = require('./responseTimeout');
+app.use(createResponseTimeout({ defaultTimeoutMs: HTTP_REQUEST_TIMEOUT_MS }));
 
 // Request ID ──────────────────────────────────────────────────────────
 app.use((req, res, next) => {
@@ -854,6 +852,11 @@ app.post("/workspaces/:workspaceId/intelligence", authenticate, requireWorkspace
     });
     return res.json({ success: true, ...result, requestId: req.requestId });
   } catch (error) {
+    // Log categories only: questions, access tokens and provider credentials stay private.
+    console.warn(`[${req.requestId}] intelligence failed`, {
+      code: error.code || 'AI_FAILED', status: error.status || 500,
+      providerStatus: error.providerStatus, providerReason: error.providerReason,
+    });
     if (res.destroyed) return;
     return res.status(error.status || 500).json({ success: false, code: error.code || "AI_FAILED", message: error.message || "Unable to answer the workspace question.", requestId: req.requestId });
   } finally {

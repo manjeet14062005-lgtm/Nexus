@@ -87,7 +87,9 @@ function requestUpstash({ url, token, command, timeoutMs = 2500 }) {
         try {
           const parsed = JSON.parse(raw || '{}');
           if (parsed.error) return reject(new Error(String(parsed.error)));
-          resolve(parsed.result);
+          // Pipeline replies are an array of command results, unlike the
+          // { result: value } envelope returned by a single Redis command.
+          resolve(Array.isArray(parsed) ? parsed : parsed.result);
         } catch (error) {
           reject(new Error(`Invalid Upstash response: ${error.message}`));
         }
@@ -131,8 +133,14 @@ class UpstashRedisRateLimiter {
       ],
       timeoutMs: this.timeoutMs,
     });
-    const count = Number(Array.isArray(result) ? result[0]?.result : NaN);
-    if (!Number.isFinite(count)) throw new Error('Invalid distributed rate-limit counter response.');
+    if (!Array.isArray(result) || result.length !== 2) throw new Error('Invalid distributed rate-limit response.');
+    for (const command of result) {
+      if (command?.error) throw new Error(String(command.error));
+    }
+    const count = result[0]?.result;
+    if (!Number.isSafeInteger(count) || count < 1 || result[1]?.result !== 1) {
+      throw new Error('Invalid distributed rate-limit counter or expiry response.');
+    }
     const now = Date.now();
     const resetAt = (Math.floor(now / safeWindow) + 1) * safeWindow;
     return { limited: count > safeLimit, remaining: Math.max(0, safeLimit - count), resetAt };
